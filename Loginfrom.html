@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Login / Register Form — Improved</title>
+  <style>
+    :root {
+      --primary: #4facfe;
+      --primary-dark: #3a8fe5;
+      --card-bg: #fff;
+      --shadow: 0 6px 15px rgba(0,0,0,0.15);
+      --transition: 420ms cubic-bezier(.2,.9,.2,1);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--primary), #00f2fe);
+      font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    }
+
+    .container {
+      background: var(--card-bg);
+      width: 100%;
+      max-width: 420px;
+      padding: 26px;
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      min-height: 360px; /* prevents jumping */
+    }
+
+    h2 { margin: 0 0 12px 0; color: #222; font-weight: 600; }
+
+    /* forms wrapper holds both panels that will slide */
+    .forms-wrapper { position: relative; margin-top: 12px; height: 220px; }
+
+    .form-panel {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      transition: transform var(--transition), opacity 260ms ease;
+      opacity: 0;
+      transform: translateX(100%);
+      pointer-events: none;
+    }
+
+    /* default (login visible) */
+    .form-panel.login { opacity: 1; transform: translateX(0); pointer-events: auto; }
+
+    .form-panel input {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    .form-panel input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 6px rgba(79,172,254,0.18);
+    }
+
+    button.primary {
+      width: 100%;
+      padding: 12px;
+      margin-top: 8px;
+      border: none;
+      border-radius: 8px;
+      background: var(--primary);
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 160ms;
+    }
+    button.primary:hover { background: var(--primary-dark); }
+
+    .toggle {
+      margin-top: 16px;
+      color: #555;
+      font-size: 0.95rem;
+    }
+
+    .link-btn {
+      background: none;
+      border: none;
+      color: var(--primary);
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      padding: 0;
+      margin-left: 6px;
+      font-size: 0.95rem;
+    }
+
+    .link-btn:focus { outline: 2px solid rgba(79,172,254,0.25); border-radius: 6px; }
+
+    .error {
+      color: #b00020;
+      font-size: 0.9rem;
+      margin-top: 6px;
+      min-height: 18px;
+      text-align: left;
+    }
+
+    /* When container has show-register, slide login left and bring register in */
+    .container.show-register .forms-wrapper .form-panel.login {
+      transform: translateX(-100%);
+      opacity: 0;
+      pointer-events: none;
+    }
+    .container.show-register .forms-wrapper .form-panel.register {
+      transform: translateX(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* default register off-screen to the right */
+    .forms-wrapper .form-panel.register {
+      transform: translateX(100%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* small screens tweak */
+    @media (max-width: 420px) {
+      .container { padding: 18px; min-height: 380px; }
+      .forms-wrapper { height: auto; }
+      .form-panel { position: relative; transform: translateX(0); opacity: 1; pointer-events: auto; }
+      /* disable sliding on tiny screens for stability */
+      .container.show-register .forms-wrapper .form-panel.register,
+      .container.show-register .forms-wrapper .form-panel.login { transform: none; opacity: 1; pointer-events: auto; position: relative; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="container">
+    <h2 id="form-title">Login</h2>
+
+    <div class="forms-wrapper" aria-live="polite">
+      <!-- Login panel (visible by default) -->
+      <form id="login-form" class="form-panel login" autocomplete="on" novalidate>
+        <input name="loginEmail" type="email" placeholder="Email" required />
+        <input name="loginPassword" type="password" placeholder="Password" required />
+        <button class="primary" type="submit">Login</button>
+        <div class="error" aria-hidden="true" id="login-error"></div>
+      </form>
+
+      <!-- Register panel (hidden initially) -->
+      <form id="register-form" class="form-panel register" autocomplete="on" novalidate>
+        <input name="fullName" type="text" placeholder="Full name" required />
+        <input name="registerEmail" type="email" placeholder="Email" required />
+        <input name="registerPassword" id="reg-pass" type="password" placeholder="Password (min 6 chars)" required />
+        <input name="confirmPassword" id="reg-confirm" type="password" placeholder="Confirm password" required />
+        <button class="primary" type="submit">Register</button>
+        <div class="error" aria-hidden="true" id="register-error"></div>
+      </form>
+    </div>
+
+    <div class="toggle">
+      <span id="toggle-text">Don’t have an account?</span>
+      <button id="toggle-link" class="link-btn" type="button" aria-controls="login-form register-form">Register</button>
+    </div>
+  </div>
+
+  <script>
+    const container = document.getElementById('container');
+    const formTitle = document.getElementById('form-title');
+    const toggleText = document.getElementById('toggle-text');
+    const toggleLink = document.getElementById('toggle-link');
+
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const loginError = document.getElementById('login-error');
+    const registerError = document.getElementById('register-error');
+
+    let isLogin = true; // current mode
+
+    // Toggle handler
+    toggleLink.addEventListener('click', () => {
+      isLogin = !isLogin;
+      if (!isLogin) {
+        container.classList.add('show-register');
+        formTitle.textContent = 'Register';
+        toggleText.textContent = 'Already have an account?';
+        toggleLink.textContent = 'Login';
+        // focus first register input
+        registerForm.querySelector('input[name="fullName"]').focus();
+      } else {
+        container.classList.remove('show-register');
+        formTitle.textContent = 'Login';
+        toggleText.textContent = 'Don’t have an account?';
+        toggleLink.textContent = 'Register';
+        loginForm.querySelector('input[name="loginEmail"]').focus();
+      }
+      // clear inline errors when toggling
+      loginError.textContent = '';
+      registerError.textContent = '';
+    });
+
+    // Demo login handler (prevent real submit)
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      loginError.textContent = '';
+      const email = loginForm.loginEmail.value.trim();
+      const pass = loginForm.loginPassword.value;
+      if (!email || !pass) {
+        loginError.textContent = 'Please enter both email and password.';
+        return;
+      }
+      // Replace the alert with real authentication call later
+      alert('Login (demo): ' + email);
+      loginForm.reset();
+    });
+
+    // Register handler with basic validation
+    registerForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      registerError.textContent = '';
+
+      const name = registerForm.fullName.value.trim();
+      const email = registerForm.registerEmail.value.trim();
+      const pwd = registerForm.registerPassword.value;
+      const confirm = registerForm.confirmPassword.value;
+
+      if (!name || !email || !pwd || !confirm) {
+        registerError.textContent = 'Please fill out all fields.';
+        return;
+      }
+      if (pwd.length < 6) {
+        registerError.textContent = 'Password must be at least 6 characters.';
+        return;
+      }
+      if (pwd !== confirm) {
+        registerError.textContent = 'Passwords do not match.';
+        return;
+      }
+
+      // Replace with real registration API call later
+      alert('Register (demo): ' + email);
+      registerForm.reset();
+
+      // auto-switch back to login on successful register
+      isLogin = true;
+      container.classList.remove('show-register');
+      formTitle.textContent = 'Login';
+      toggleText.textContent = 'Don’t have an account?';
+      toggleLink.textContent = 'Register';
+    });
+
+    // Optional: keyboard shortcut (Escape) to switch back to login
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !isLogin) {
+        toggleLink.click();
+      }
+    });
+  </script>
+</body>
+</html>
